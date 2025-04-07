@@ -64,7 +64,7 @@ if [[ ! -z "${DNS_SERVERS}" ]]; then
 		echo "$(date) [info] DNS_SERVERS defined as '${DNS_SERVERS}'"
 	else
 		echo "$(date) [warn] DNS_SERVERS not defined (via -e DNS_SERVERS), defaulting to Google and FreeDNS name servers"
-		export DNS_SERVERS="8.8.8.8,37.235.1.174,8.8.4.4,37.235.1.177"
+		export DNS_SERVERS="8.8.8.8,71.252.0.12,8.8.4.4,68.237.161.12"
 fi
 
 export SPLIT_DNS_DOMAINS=$(echo "${SPLIT_DNS_DOMAINS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
@@ -221,28 +221,48 @@ if [ ! -f /config/certs/server-key.pem ] || [ ! -f /config/certs/server-cert.pem
 	# Generate certs one
 	mkdir /config/certs
 	cd /config/certs
-	certtool --generate-privkey --outfile ca-key.pem
-	cat > ca.tmpl <<-EOCA
-	cn = "$CA_CN"
-	organization = "$CA_ORG"
-	serial = 1
-	expiration_days = $CA_DAYS
-	ca
-	signing_key
-	cert_signing_key
-	crl_signing_key
+	openssl genrsa -out ca-key.pem 4096
+	cat > ca.cnf <<-EOCA
+	[ req ]
+	default_bits       = 4096
+	distinguished_name = req_distinguished_name
+	x509_extensions    = v3_ca
+	prompt             = no
+
+	[ req_distinguished_name ]
+	CN = $CA_CN
+	O  = $CA_ORG
+
+	[ v3_ca ]
+	subjectKeyIdentifier=hash
+	authorityKeyIdentifier=keyid:always,issuer
+	basicConstraints = critical, CA:true
+	keyUsage = critical, keyCertSign, cRLSign
 	EOCA
-	certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca.pem
-	certtool --generate-privkey --outfile server-key.pem 
-	cat > server.tmpl <<-EOSRV
-	cn = "$SRV_CN"
-	organization = "$SRV_ORG"
-	expiration_days = $SRV_DAYS
-	signing_key
-	encryption_key
-	tls_www_server
+	openssl req -x509 -new -nodes -key ca-key.pem -sha256 -days "$CA_DAYS" \
+    -out ca.pem -config ca.cnf
+	openssl genrsa -out server-key.pem 2048
+	cat > server.cnf <<-EOSRV
+	[ req ]
+	default_bits       = 2048
+	distinguished_name = req_distinguished_name
+	req_extensions     = v3_req
+	prompt             = no
+
+	[ req_distinguished_name ]
+	CN = $SRV_CN
+	O  = $SRV_ORG
+
+	[ v3_req ]
+	basicConstraints = CA:FALSE
+	keyUsage = digitalSignature, keyEncipherment
+	extendedKeyUsage = serverAuth
 	EOSRV
-	certtool --generate-certificate --load-privkey server-key.pem --load-ca-certificate ca.pem --load-ca-privkey ca-key.pem --template server.tmpl --outfile server-cert.pem
+	openssl req -new -key server-key.pem -out server.csr -config server.cnf
+	openssl x509 -req -in server.csr -CA ca.pem -CAkey ca-key.pem \
+    -CAcreateserial -out server-cert.pem -days "$SRV_DAYS" -sha256 \
+    -extfile server.cnf -extensions v3_req
+	rm server.csr ca.srl
 else
 	echo "$(date) [info] Using existing certificates in /config/certs"
 fi

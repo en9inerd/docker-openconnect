@@ -12,6 +12,7 @@ RUN buildDeps=" \
 		gawk \
 		geoip \
 		gnutls-dev \
+		openssl-dev \
 		gpgme \
 		krb5-dev \
 		libc-dev \
@@ -47,7 +48,7 @@ RUN buildDeps=" \
 	&& tar -xf ocserv.tar.xz -C /usr/src/ocserv --strip-components=1 \
 	&& rm ocserv.tar.xz* \
 	&& cd /usr/src/ocserv \
-	&& ./configure \
+	&& ./configure --without-gnutls \
 	&& make \
 	&& make install \
 	&& cd / \
@@ -58,11 +59,11 @@ RUN buildDeps=" \
 				| xargs -r apk info --installed \
 				| sort -u \
 			)" \
-	&& apk add --update --virtual .run-deps $runDeps gnutls-utils iptables \
+	&& apk add --update --virtual .run-deps $runDeps openssl iptables \
 	&& apk del .build-deps \
 	&& rm -rf /var/cache/apk/* 
 	
-RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate runit \
+RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate runit libseccomp \
 	&& rm -rf /var/cache/apk/* 
 
 RUN update-ca-certificates
