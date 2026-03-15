@@ -1,6 +1,5 @@
-FROM alpine:latest
+FROM alpine:3.20
 
-MAINTAINER MarkusMcNugen
 # Forked from TommyLau for unRAID
 
 VOLUME /config
@@ -11,7 +10,6 @@ RUN buildDeps=" \
 		g++ \
 		gawk \
 		geoip \
-		gnutls-dev \
 		openssl-dev \
 		gpgme \
 		krb5-dev \
@@ -43,7 +41,7 @@ RUN buildDeps=" \
 	# && export OC_VERSION=$(curl --silent "https://ocserv.gitlab.io/www/changelog.html" 2>&1 | grep -m 1 'Version' | awk '/Version/ {print $2}') \
 	# The line below grabs the 2nd most recent version of OC
 	&& export OC_VERSION=$(curl --silent "https://ocserv.gitlab.io/www/changelog.html" 2>&1 | grep -m 2 'Version' | tail -n 1 | awk '/Version/ {print $2}') \
-	&& curl -SL "ftp://ftp.infradead.org/pub/ocserv/ocserv-$OC_VERSION.tar.xz" -o ocserv.tar.xz \
+	&& curl -SL "https://ftp.infradead.org/pub/ocserv/ocserv-$OC_VERSION.tar.xz" -o ocserv.tar.xz \
 	&& mkdir -p /usr/src/ocserv \
 	&& tar -xf ocserv.tar.xz -C /usr/src/ocserv --strip-components=1 \
 	&& rm ocserv.tar.xz* \
@@ -68,7 +66,7 @@ RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate
 
 RUN update-ca-certificates
 
-ADD ocserv /etc/default/ocserv
+COPY ocserv /etc/default/ocserv
 
 WORKDIR /config
 
@@ -77,4 +75,8 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 4443
 EXPOSE 4443/udp
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD occtl show status >/dev/null 2>&1 || exit 1
+
 CMD ["ocserv", "-c", "/config/ocserv.conf", "-f"]

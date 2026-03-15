@@ -16,9 +16,10 @@ The dockerfile was written to always download and compile the latest release of 
 [Source](https://gitlab.com/ocserv/ocserv)
 
 # Docker Features
-* Base: Alpine 3.13
-* Latest OpenConnect Server 1.1.2
-* Size: 63.6MB 
+* Base: Alpine 3.20
+* Multi-arch: `linux/amd64` and `linux/arm64` (Raspberry Pi 4, Apple Silicon, etc.)
+* Latest OpenConnect Server (compiled from source at build time)
+* Size: ~64MB
 * Modification of the listening port for more networking versatility
 * Customizing the DNS servers used for queries over the VPN
 * Supports tunneling all traffic over the VPN or tunneling only specific routes via split-include
@@ -29,17 +30,23 @@ The dockerfile was written to always download and compile the latest release of 
 # Run container from Docker registry
 The container is available from the Docker registry and this is the simplest way to get it.
 
-## Basic Configuration
+## Docker Compose (recommended)
+```
+docker compose up -d
+```
+See `docker-compose.yml` for the full configuration. Edit the environment variables to suit your needs.
+
+## Docker Run
 ### Without customizing cert variables
 ```
-$ docker run --privileged  -d \
+$ docker run --cap-add NET_ADMIN --device /dev/net/tun -d \
               -p 4443:4443 \
               -p 4443:4443/udp \
-              markusmcnugen/openconnect
+              enginerd/ocserv
 ```
 ### With customizing cert variables
 ```
-$ docker run --privileged  -d \
+$ docker run --cap-add NET_ADMIN --device /dev/net/tun -d \
               -p 4443:4443 \
               -p 4443:4443/udp \
               -e "CA_CN=VPN CA" \
@@ -48,7 +55,7 @@ $ docker run --privileged  -d \
               -e "SRV_CN=vpn.example.com" \
               -e "SRV_ORG=MyCompany" \
               -e "SRV_DAYS=9999" \
-              markusmcnugen/openconnect
+              enginerd/ocserv
 ```
 
 ## Intermediate Configuration (Providing own certs in /config/certs and running on port 443):
@@ -58,7 +65,7 @@ server-key.pem
 server-cert.pem
 ```
 ```
-$ docker run --privileged  -d \
+$ docker run --cap-add NET_ADMIN --device /dev/net/tun -d \
               -v /your/config/path/:/config \
               -e "LISTEN_PORT=443" \
               -e "DNS_SERVERS=192.168.1.190" \
@@ -67,7 +74,7 @@ $ docker run --privileged  -d \
               -e "SPLIT_DNS_DOMAINS=example.com" \
               -p 443:443 \
               -p 443:443/udp \
-              markusmcnugen/openconnect
+              enginerd/ocserv
 ```
 
 ## Advanced Configuration:
@@ -83,6 +90,12 @@ This container allows for advanced configurations for power users who know what 
 |`TUNNEL_ROUTES`| No | Comma delimited tunnel routes in CIDR notation |`TUNNEL_ROUTES=192.168.1.0/24`|
 |`SPLIT_DNS_DOMAINS`| No | Comma delimited dns domains |`SPLIT_DNS_DOMAINS=example.com`|
 |`POWER_USER`| No | Allows for advanced manual configuration via host mounted /config volume |`POWER_USER=no`|
+|`CA_CN`| No | Certificate Authority common name |`CA_CN=VPN CA`|
+|`CA_ORG`| No | Certificate Authority organization |`CA_ORG=OCSERV`|
+|`CA_DAYS`| No | Certificate Authority validity in days |`CA_DAYS=9999`|
+|`SRV_CN`| No | Server certificate common name |`SRV_CN=vpn.example.com`|
+|`SRV_ORG`| No | Server certificate organization |`SRV_ORG=MyCompany`|
+|`SRV_DAYS`| No | Server certificate validity in days |`SRV_DAYS=9999`|
 
 ## Volumes
 | Volume | Required | Function | Example |
@@ -105,7 +118,7 @@ Incoming Outside Port 4443 Forwarding TCP and UDP to the OpenConnect Servers ins
 ## Add User/Change Password
 Add users by executing the following command on the host running the docker container
 ```
-docker exec -ti openconnect ocpasswd -c /config/ocpasswd markusmcnugen
+docker exec -ti ocserv ocpasswd -c /config/ocpasswd youruser
 Enter password:
 Re-enter password:
 ```
@@ -113,7 +126,7 @@ Re-enter password:
 ## Delete User
 Delete users by executing the following command on the host running the docker container
 ```
-docker exec -ti openconnect ocpasswd -c /config/ocpasswd -d markusmcnugen
+docker exec -ti ocserv ocpasswd -c /config/ocpasswd -d youruser
 ```
 
 ## Login and Logout Log Messages
@@ -138,7 +151,7 @@ $ docker build -t openconnect .
 ```
 ### Run it:
 ```
-$ docker run --privileged  -d \
+$ docker run --cap-add NET_ADMIN --device /dev/net/tun -d \
               -p 4443:4443 \
               -p 4443:4443/udp \
               openconnect

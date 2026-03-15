@@ -1,0 +1,27 @@
+services:
+  ocserv:
+    image: enginerd/ocserv
+    container_name: ocserv
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "4443:4443"
+      - "4443:4443/udp"
+    volumes:
+      - ./config:/config
+    environment:
+      - LISTEN_PORT=4443
+      - DNS_SERVERS=8.8.8.8,8.8.4.4
+      - TUNNEL_MODE=all
+      # - TUNNEL_ROUTES=192.168.1.0/24
+      # - SPLIT_DNS_DOMAINS=example.com
+      # - POWER_USER=no
+      # - CA_CN=VPN CA
+      # - CA_ORG=OCSERV
+      # - CA_DAYS=9999
+      # - SRV_CN=vpn.example.com
+      # - SRV_ORG=MyCompany
+      # - SRV_DAYS=9999
+    restart: unless-stopped
