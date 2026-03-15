@@ -13,8 +13,8 @@ services:
       - ./config:/config
     environment:
       - LISTEN_PORT=4443
-      - DNS_SERVERS=8.8.8.8,8.8.4.4
       - TUNNEL_MODE=all
+      # - DNS_SERVERS=8.8.8.8,1.1.1.1,8.8.4.4,1.0.0.1
       # - TUNNEL_ROUTES=192.168.1.0/24
       # - SPLIT_DNS_DOMAINS=example.com
       # - POWER_USER=no

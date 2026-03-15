@@ -55,8 +55,8 @@ export DNS_SERVERS=$(echo "${DNS_SERVERS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 if [[ ! -z "${DNS_SERVERS}" ]]; then
 		echo "$(date) [info] DNS_SERVERS defined as '${DNS_SERVERS}'"
 	else
-		echo "$(date) [warn] DNS_SERVERS not defined (via -e DNS_SERVERS), defaulting to Google and FreeDNS name servers"
-		export DNS_SERVERS="8.8.8.8,71.252.0.12,8.8.4.4,68.237.161.12"
+		echo "$(date) [warn] DNS_SERVERS not defined (via -e DNS_SERVERS), defaulting to Google and Cloudflare name servers"
+		export DNS_SERVERS="8.8.8.8,1.1.1.1,8.8.4.4,1.0.0.1"
 fi
 
 export SPLIT_DNS_DOMAINS=$(echo "${SPLIT_DNS_DOMAINS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
