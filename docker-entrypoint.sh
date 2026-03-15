@@ -181,51 +181,32 @@ if [ ! -f /config/certs/server-key.pem ] || [ ! -f /config/certs/server-cert.pem
 		SRV_DAYS=9999
 	fi
 
-	# Generate certs one
 	mkdir -p /config/certs
 	cd /config/certs
-	openssl genrsa -out ca-key.pem 4096
-	cat > ca.cnf <<-EOCA
-	[ req ]
-	default_bits       = 4096
-	distinguished_name = req_distinguished_name
-	x509_extensions    = v3_ca
-	prompt             = no
-
-	[ req_distinguished_name ]
-	CN = $CA_CN
-	O  = $CA_ORG
-
-	[ v3_ca ]
-	subjectKeyIdentifier=hash
-	authorityKeyIdentifier=keyid:always,issuer
-	basicConstraints = critical, CA:true
-	keyUsage = critical, keyCertSign, cRLSign
+	certtool --generate-privkey --bits 4096 --outfile ca-key.pem
+	cat > ca.tmpl <<-EOCA
+	cn = "$CA_CN"
+	organization = "$CA_ORG"
+	expiration_days = $CA_DAYS
+	ca
+	signing_key
+	cert_signing_key
+	crl_signing_key
 	EOCA
-	openssl req -x509 -new -nodes -key ca-key.pem -sha256 -days "$CA_DAYS" \
-    -out ca.pem -config ca.cnf
-	openssl genrsa -out server-key.pem 2048
-	cat > server.cnf <<-EOSRV
-	[ req ]
-	default_bits       = 2048
-	distinguished_name = req_distinguished_name
-	req_extensions     = v3_req
-	prompt             = no
-
-	[ req_distinguished_name ]
-	CN = $SRV_CN
-	O  = $SRV_ORG
-
-	[ v3_req ]
-	basicConstraints = CA:FALSE
-	keyUsage = digitalSignature, keyEncipherment
-	extendedKeyUsage = serverAuth
+	certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca.pem
+	certtool --generate-privkey --bits 2048 --outfile server-key.pem
+	cat > server.tmpl <<-EOSRV
+	cn = "$SRV_CN"
+	organization = "$SRV_ORG"
+	expiration_days = $SRV_DAYS
+	tls_www_server
+	signing_key
+	encryption_key
 	EOSRV
-	openssl req -new -key server-key.pem -out server.csr -config server.cnf
-	openssl x509 -req -in server.csr -CA ca.pem -CAkey ca-key.pem \
-    -CAcreateserial -out server-cert.pem -days "$SRV_DAYS" -sha256 \
-    -extfile server.cnf -extensions v3_req
-	rm server.csr ca.srl
+	certtool --generate-certificate --load-privkey server-key.pem \
+		--load-ca-certificate ca.pem --load-ca-privkey ca-key.pem \
+		--template server.tmpl --outfile server-cert.pem
+	rm -f ca.tmpl server.tmpl
 else
 	echo "$(date) [info] Using existing certificates in /config/certs"
 fi
