@@ -10,6 +10,7 @@ RUN buildDeps=" \
 		g++ \
 		gawk \
 		geoip \
+		gnutls-dev \
 		openssl-dev \
 		gpgme \
 		krb5-dev \
