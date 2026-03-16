@@ -212,7 +212,7 @@ else
 fi
 
 # Open ipv4 ip forward
-sysctl -w net.ipv4.ip_forward=1
+sysctl -w net.ipv4.ip_forward=1 || echo "$(date) [warn] Could not set ip_forward via sysctl (read-only fs), ensure it is set via Docker sysctls"
 
 # Enable NAT forwarding
 iptables -t nat -A POSTROUTING -j MASQUERADE
