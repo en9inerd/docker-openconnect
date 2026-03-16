@@ -24,4 +24,6 @@ services:
       # - SRV_CN=vpn.example.com
       # - SRV_ORG=MyCompany
       # - SRV_DAYS=9999
+    sysctls:
+      - net.ipv4.ip_forward=1
     restart: unless-stopped
